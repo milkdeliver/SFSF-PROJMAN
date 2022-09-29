@@ -35,11 +35,11 @@ function removeColumnsFromOrderBy(query, columnNames) {
 
 // Helper for employee create execution
 async function executeCreateEmployee(req, userId) {
-    const employee = await cds.tx(req).run(SELECT.one.from('Employee').columns(['userId']).where({ userId: { '=': userId } }));
+    const employee = await cds.tx(req).run(SELECT.one.from('SFSF_PROJMAN_MODEL_DB.Employee').columns(['userId']).where({ userId: { '=': userId } }));
     if (!employee) {
         const sfsfUser = await userService.tx(req).run(SELECT.one.from('User').columns(['userId', 'username', 'defaultFullName', 'email', 'division', 'department', 'title']).where({ userId: { '=': userId } }));
         if (sfsfUser) {
-            await cds.tx(req).run(INSERT.into('Employee').entries(sfsfUser));
+            await cds.tx(req).run(INSERT.into('SFSF_PROJMAN_MODEL_DB.Employee').entries(sfsfUser));
         }
     }
 }
@@ -168,8 +168,8 @@ async function deleteChildren(req) {
 async function deleteUnassignedEmployees(data, req) {
     try {
         // Build clean-up filter
-        const members = SELECT.distinct.from('Member').columns(['member_userId as userId']);
-        const unassigned = SELECT.distinct.from('Employee').columns(['userId']).where({ userId: { 'NOT IN': members } });
+        const members = SELECT.distinct.from('SFSF_PROJMAN_MODEL_DB.Member').columns(['member_userId as userId']);
+        const unassigned = SELECT.distinct.from('SFSF_PROJMAN_MODEL_DB.Employee').columns(['userId']).where({ userId: { 'NOT IN': members } });
 
         // Get the unassigned employees for deletion
         let deleted = await cds.tx(req).run(unassigned);
@@ -179,7 +179,7 @@ async function deleteUnassignedEmployees(data, req) {
 
         // Clean-up Employees
         for (var i = 0; i < deleted.length; i++) {
-            const clean_up = DELETE.from('Employee').where({ userId: { '=': deleted[i].userId } });
+            const clean_up = DELETE.from('SFSF_PROJMAN_MODEL_DB.Employee').where({ userId: { '=': deleted[i].userId } });
             await cds.tx(req).run(clean_up);
         }
         return data;
@@ -197,9 +197,10 @@ async function beforeSaveProject(req) {
             req.data.team.forEach(member => { users.push({ ID: member.ID, member_userId: member.member_userId }); });
 
             // Get current members
-            let members = await cds.tx(req).run(SELECT.from('Member').columns(['ID', 'member_userId']).where({ parent_ID: { '=': req.data.ID } }));
+            let members = await cds.tx(req).run(SELECT.from('SFSF_PROJMAN_MODEL_DB_MEMBER').columns(['ID', 'member_userId']).where({ parent_ID: { '=': req.data.ID } }));
+           // console.log(members);
             if (members) {
-                // Make sure result is an array
+                // Make sure result is an array 
                 members = (members.length === undefined) ? [members] : members;
 
                 // Process deleted members
@@ -210,7 +211,7 @@ async function beforeSaveProject(req) {
                 });
                 for (var i = 0; i < deleted.length; i++) {
                     // Delete members' activities
-                    await cds.tx(req).run(DELETE.from('Activity').where({ assignedTo_ID: { '=': deleted[i].ID } }));
+                    await cds.tx(req).run(DELETE.from('SFSF_PROJMAN_MODEL_DB.Activity').where({ assignedTo_ID: { '=': deleted[i].ID } }));
                     if (req.data.activities) {
                         let idx = 0;
                         do {
@@ -239,7 +240,7 @@ async function beforeSaveProject(req) {
                     if (element) updated.push(user);
                 });
                 for (var i = 0; i < updated.length; i++) {
-                    await executeUpdateEmployee(req, 'Member', updated[i].ID, updated[i].member_userId);
+                    await executeUpdateEmployee(req, 'SFSF_PROJMAN_MODEL_DB_MEMBER', updated[i].ID, updated[i].member_userId);
                 }
             }
         }
@@ -254,14 +255,14 @@ async function afterSaveProject(data, req) {
     try {
         if (data.team) {
             // Look for members with unassigned elementId
-            let unassigned = await cds.tx(req).run(SELECT.from('Member').columns(['ID', 'member_userId']).where({ parent_ID: { '=': data.ID }, and: { hasAssignment: { '=': false } } }));
+            let unassigned = await cds.tx(req).run(SELECT.from('SFSF_PROJMAN_MODEL_DB_MEMBER').columns(['ID', 'member_userId']).where({ parent_ID: { '=': data.ID }, and: { hasAssignment: { '=': false } } }));
             if (unassigned) {
                 // Make sure result is an array
                 unassigned = (unassigned.length === undefined) ? [unassigned] : unassigned;
 
                 // Create SFSF assignment
                 for (var i = 0; i < unassigned.length; i++) {
-                    await createAssignment(req, 'Member', unassigned[i].ID, unassigned[i].member_userId);
+                    await createAssignment(req, 'SFSF_PROJMAN_MODEL_DB_MEMBER', unassigned[i].ID, unassigned[i].member_userId);
                 }
             }
         }

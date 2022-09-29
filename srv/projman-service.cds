@@ -6,17 +6,17 @@ namespace sfsf.projman.service;
 service ProjectManager @(path : '/projman', requires: 'authenticated-user') {
     @odata.draft.enabled
     entity Project as projection on model.Project;
-    annotate Project with @(requires: 'Admin');
+    annotate Project; // with @(requires: 'Admin');
 
     entity Member as
         select from model.Member {
             * ,
             member.defaultFullName as member_name
         };
-    annotate Member with @(requires: 'Admin');
+    annotate Member;// with @(requires: 'Admin');
 
     entity Activity as projection on model.Activity;
-    annotate Activity with @(requires: 'Admin');
+    annotate Activity;// with @(requires: 'Admin');
 
     @readonly
     entity SFSF_User       as
@@ -31,8 +31,8 @@ service ProjectManager @(path : '/projman', requires: 'authenticated-user') {
         };
 
     annotate SFSF_User with @(cds.odata.valuelist);
-    annotate SFSF_User with @(requires: 'Admin');
-    annotate model.Employee with @(requires: 'Admin');
-    annotate model.Status with @(requires: 'Admin');
-    annotate model.Role with @(requires: 'Admin');
+    annotate SFSF_User;// with @(requires: 'Admin');
+    annotate model.Employee;// with @(requires: 'Admin');
+    annotate model.Status with;// @(requires: 'Admin');
+    annotate model.Role with;// @(requires: 'Admin'); 
 }
